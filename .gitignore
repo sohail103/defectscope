@@ -1,0 +1,40 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Node / frontend
+node_modules/
+frontend/dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# DefectScope runtime data (created locally; never commit)
+# Uploaded projects and their analyses
+workspaces/*
+!workspaces/.gitkeep
+# Trained models (joblib pickles: only load ones you made yourself)
+models/*
+!models/.gitkeep
+# Experiment results
+experiments/*
+!experiments/.gitkeep
+# Downloaded NASA data (re-download from the app; checksums are recorded in the model/experiment JSON)
+datasets/raw/*
+datasets/processed/*
+datasets/metadata/*
+
+# Env / secrets
+.env
+.env.*
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
