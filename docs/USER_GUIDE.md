@@ -19,6 +19,19 @@ Left: file tree (chips show a file's highest complexity; excluded items are grey
 **predicted risk** (triangle on a function's first line, only when a model has been applied). Click a line to select the enclosing function/class.
 Right: the inspector shows why it was flagged, what adds to complexity (bars, and the contributing lines are highlighted), and all metrics.
 
+## 4b. Findings
+Static-analysis results unified across tools: totals by severity and category, per-tool status/time/notes, filters, and a table linking to the exact line.
+In the code viewer they appear as rings in the middle lane (hollow = info, tinted = warning, solid = high) and in the inspector. "also: ruff" means other tools reported the same kind of issue on that line.
+Tools that are not installed are listed with the install command. Pylint and clang-tidy are off by default; enable them in Analysis setup.
+
+## 4c. History
+Needs a project imported with its `.git` folder (try **Sample with Git history**). Shows commits and churn per month (with fix-like commits highlighted), contributors,
+complexity over time and the evolution of the most complex files, and the most changed files. Set a cutoff date in Analysis setup to analyse the project as of a past date.
+
+## 4d. Review priority
+One row per function with each factor in its own column (complexity, high-severity findings, file commits and fix-like commits, predicted risk if you applied a model, duplication)
+and badges for the factors where it is in the top 10%. Sort by any column. Churn/fix badges describe the whole file and rank below function-level evidence.
+
 ## 5. Dependencies
 Force-directed file graph (node size = fan-in, rust ring = in a cycle), cycle list, fan-in/out rankings, external dependencies.
 

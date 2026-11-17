@@ -14,6 +14,10 @@ class AnalysisCancelled(Exception):
     pass
 
 
+class PassSkipped(Exception):
+    """Raised by a pass that has nothing to do (disabled, tool missing, no repository...)."""
+
+
 @dataclass
 class PassContext:
     root: Path

@@ -1,0 +1,2 @@
+# Optional extras (not needed for the core app)
+clang-tidy>=18      # semantic C/C++ analysis via Clang Static Analyzer checks (large download, ~45 MB)

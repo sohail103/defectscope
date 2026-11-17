@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import type { Entity, Hotspot } from "../types";
+import type { Diagnostic, Entity, Hotspot } from "../types";
 
 const LABELS: Record<string, string> = {
   loc: "Lines (physical)", sloc: "Source lines", comment_lines: "Comment lines", blank_lines: "Blank lines",
@@ -12,21 +12,25 @@ const LABELS: Record<string, string> = {
   wmc: "WMC", dit: "DIT", noc: "NOC", cbo: "CBO (approx.)", rfc: "RFC (approx.)", lcom: "LCOM (approx.)",
   halstead_volume: "Halstead volume", halstead_difficulty: "Halstead difficulty", halstead_effort: "Halstead effort",
   function_count: "Functions", class_count: "Classes", imports: "Imports", fan_in: "Fan-in", fan_out: "Fan-out",
-  instability: "Instability", external_dependencies: "External dependencies", max_cyclomatic: "Max cyclomatic",
+  instability: "Instability", external_dependencies: "External dependencies", clone_group_size: "Structural twins (group size)",
+  diagnostics_total: "Static-analysis findings", diagnostics_high: "High-severity findings", git_commits: "Commits", git_authors: "Authors",
+  git_churn: "Churn (lines added+deleted)", git_fix_commits: "Fix-like commits (heuristic)", git_change_entropy: "Change entropy",
+  git_days_since_last_change: "Days since last change", git_age_days: "Age (days)", git_top_author_share: "Top author share", git_recent_commits_90d: "Commits in last 90 days", max_cyclomatic: "Max cyclomatic",
   mean_cyclomatic: "Mean cyclomatic", avg_function_sloc: "Avg function SLOC", max_function_sloc: "Max function SLOC",
 };
 const SHOW: Record<string, string[]> = {
-  function: ["sloc", "loc", "comment_lines", "parameters", "local_variables", "cyclomatic", "cognitive", "nesting_depth", "branches", "loops", "returns", "exception_handlers", "logical_operators", "distinct_calls", "pointer_ops", "alloc_calls", "free_calls", "goto_count", "global_refs", "halstead_volume", "halstead_difficulty", "halstead_effort"],
+  function: ["diagnostics_total", "clone_group_size", "sloc", "loc", "comment_lines", "parameters", "local_variables", "cyclomatic", "cognitive", "nesting_depth", "branches", "loops", "returns", "exception_handlers", "logical_operators", "distinct_calls", "pointer_ops", "alloc_calls", "free_calls", "goto_count", "global_refs", "halstead_volume", "halstead_difficulty", "halstead_effort"],
   class: ["sloc", "method_count", "field_count", "wmc", "dit", "noc", "cbo", "rfc", "lcom"],
-  file: ["loc", "sloc", "comment_lines", "blank_lines", "function_count", "class_count", "imports", "max_cyclomatic", "mean_cyclomatic", "avg_function_sloc", "max_function_sloc", "fan_in", "fan_out", "instability", "external_dependencies"],
+  file: ["diagnostics_total", "diagnostics_high", "git_commits", "git_authors", "git_churn", "git_fix_commits", "git_change_entropy", "git_days_since_last_change", "git_age_days", "git_top_author_share", "git_recent_commits_90d", "loc", "sloc", "comment_lines", "blank_lines", "function_count", "class_count", "imports", "max_cyclomatic", "mean_cyclomatic", "avg_function_sloc", "max_function_sloc", "fan_in", "fan_out", "instability", "external_dependencies"],
 };
 
-export default function Inspector({ file, entities, hotspots, selected, onSelect }: {
-  file?: Entity; entities: Entity[]; hotspots: Hotspot[]; selected: Entity | null; onSelect: (e: Entity | null) => void;
+export default function Inspector({ file, entities, hotspots, diagnostics = [], selected, onSelect, onJump }: {
+  file?: Entity; entities: Entity[]; hotspots: Hotspot[]; diagnostics?: Diagnostic[]; selected: Entity | null; onSelect: (e: Entity | null) => void; onJump?: (line: number) => void;
 }) {
   const e = selected ?? file ?? null;
   const list = entities.filter((x) => x.kind !== "file").sort((a, b) => a.range.start_line - b.range.start_line);
   const mine = e ? hotspots.filter((h) => (e.kind === "file" ? true : h.entity_id === e.id)) : [];
+  const diags = e ? diagnostics.filter((d) => e.kind === "file" || d.entity_id === e.id) : [];
   const contrib = e?.details?.complexity_contributors as Record<string, number> | undefined;
   const cmax = contrib ? Math.max(1, ...Object.values(contrib)) : 1;
 
@@ -45,6 +49,17 @@ export default function Inspector({ file, entities, hotspots, selected, onSelect
               <div key={h.id} className={"hot " + h.severity}><b style={{ fontWeight: 500 }}>{h.rule.replace(/_/g, " ")}</b><div className="small">{h.message}</div>
                 {e.kind === "file" && <div className="small faint mono">line {h.range.start_line}</div>}</div>
             ))}
+          </>}
+
+          {diags.length > 0 && <>
+            <h3>Static-analysis findings</h3>
+            <p className="small muted" style={{ marginBottom: 6 }}><span className="badge layer-static">static analysis</span> Reported by external tools, independent of the structural indicators.</p>
+            {diags.slice(0, 15).map((d) => (
+              <div key={d.id} className={"hot " + d.severity} style={{ cursor: "pointer", borderLeftColor: "var(--static)" }} onClick={() => onJump?.(d.range.start_line)}>
+                <b style={{ fontWeight: 500 }}>{d.rule}</b> <span className="small faint">· {d.tool} · line {d.range.start_line}</span>
+                <div className="small">{d.message}</div>
+                {d.corroborated_by.length > 0 && <div className="small" style={{ color: "var(--static)" }}>also reported by {d.corroborated_by.join(", ")}</div>}</div>))}
+            {diags.length > 15 && <p className="small muted">+{diags.length - 15} more in the Findings tab</p>}
           </>}
 
           {contrib && Object.keys(contrib).length > 0 && <>

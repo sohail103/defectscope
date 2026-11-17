@@ -4,7 +4,7 @@ import { go } from "../App";
 import CodeViewer, { Layers } from "../code-viewer/CodeViewer";
 import FileTree from "../project-explorer/FileTree";
 import Inspector from "../project-explorer/Inspector";
-import type { Entity, Hotspot, TreeNode } from "../types";
+import type { Diagnostic, Entity, Hotspot, TreeNode } from "../types";
 import type { Prediction, PredictionDoc } from "../types/lab";
 import type { ProjectCtx } from "../pages/ProjectPage";
 
@@ -17,9 +17,11 @@ export default function ExplorerTab({ ctx, params }: { ctx: ProjectCtx; params: 
   const [ents, setEnts] = useState<Entity[]>([]);
   const [hot, setHot] = useState<Hotspot[]>([]);
   const [sel, setSel] = useState<Entity | null>(null);
-  const [layers, setLayers] = useState<Layers>({ heat: true, structural: true, staticAnalysis: false, risk: false });
+  const [layers, setLayers] = useState<Layers>({ heat: true, structural: true, staticAnalysis: true, risk: false });
   const [err, setErr] = useState<string | null>(null);
   const [pred, setPred] = useState<PredictionDoc | null>(null);
+  const [diags, setDiags] = useState<Diagnostic[]>([]);
+  const [jump, setJump] = useState<number | undefined>(undefined);
   const aid = overview?.analysis_id;
 
   useEffect(() => {
@@ -29,13 +31,14 @@ export default function ExplorerTab({ ctx, params }: { ctx: ProjectCtx; params: 
   }, [id, aid]);
   useEffect(() => { api<TreeNode>(`/projects/${id}/tree`).then(setTree).catch((e) => setErr(e.message)); }, [id, aid]);
   useEffect(() => {
-    setSel(null); setEnts([]); setHot([]);
+    setSel(null); setEnts([]); setHot([]); setDiags([]); setJump(undefined);
     if (!file) { setContent(""); return; }
     const q = encodeURIComponent(file);
     api<{ content: string }>(`/projects/${id}/file?path=${q}`).then((r) => setContent(r.content)).catch((e) => setErr(e.message));
     if (aid) {
       api<Entity[]>(`/projects/${id}/entities?path=${q}&limit=5000`).then(setEnts);
       api<Hotspot[]>(`/projects/${id}/hotspots?path=${q}`).then(setHot);
+      api<{ items: Diagnostic[] }>(`/projects/${id}/diagnostics?path=${q}`).then((r) => setDiags(r.items)).catch(() => setDiags([]));
     }
   }, [id, file, aid]);
   // jump to the entity that starts at the requested line (from overview links)
@@ -65,7 +68,9 @@ export default function ExplorerTab({ ctx, params }: { ctx: ProjectCtx; params: 
               <span className="path">{file}</span>
               <label className="toggle"><input type="checkbox" checked={layers.heat} onChange={() => toggle("heat")} />Complexity heat</label>
               <label className="toggle"><input type="checkbox" checked={layers.structural} onChange={() => toggle("structural")} />Structural flags</label>
-              <label className="toggle off" title="No static-analysis tool has been run yet (planned: cppcheck, clang-tidy, Ruff, Pylint)"><input type="checkbox" disabled />Static analysis</label>
+              {diags.length > 0 || overview?.tool_status?.some((t) => t.ran)
+                ? <label className="toggle"><input type="checkbox" checked={layers.staticAnalysis} onChange={() => toggle("staticAnalysis")} />Static analysis ({diags.length})</label>
+                : <label className="toggle off" title="No static-analysis tool produced findings for this file"><input type="checkbox" disabled />Static analysis</label>}
               {pred ? <label className="toggle"><input type="checkbox" checked={layers.risk} onChange={() => toggle("risk")} />Predicted risk</label>
                 : <label className="toggle off" title="Open the Defect risk tab and apply a compatible model"><input type="checkbox" disabled />Predicted risk</label>}
             </div>
@@ -73,17 +78,17 @@ export default function ExplorerTab({ ctx, params }: { ctx: ProjectCtx; params: 
               <div className="legend">
                 <span><i className="key heat-key" />Complexity heat (darker = higher cyclomatic)</span>
                 <span><i className="key bar-key" />Structural flag (left bar: yellow info, orange warning, rust high)</span>
-                <span style={{ opacity: .5 }}><i className="key diag-key" />Static-analysis finding</span>
+                <span style={{ opacity: diags.length ? 1 : .5 }}><i className="key diag-key" />Static-analysis finding (middle lane: hollow = info, tinted = warning, solid = high)</span>
                 <span style={{ opacity: pred ? 1 : .5 }}><i className="key risk-key" />Predicted risk (whole function, right lane)</span>
               </div>
             </div>
-            <CodeViewer content={content} language={language} entities={ents} hotspots={hot} layers={layers} selected={sel} targetLine={line} onSelect={setSel}
+            <CodeViewer content={content} language={language} entities={ents} hotspots={hot} layers={layers} selected={sel} targetLine={jump ?? line} onSelect={setSel} diagnostics={diags}
               predictions={(pred?.predictions ?? []).filter((p: Prediction) => p.path === file)} modelName={pred?.model.name} />
           </>
         )}
       </div>
       <div className="pane right">
-        {file ? <Inspector file={fileEnt} entities={ents} hotspots={hot} selected={sel} onSelect={setSel} />
+        {file ? <Inspector file={fileEnt} entities={ents} hotspots={hot} diagnostics={diags} selected={sel} onSelect={setSel} onJump={setJump} />
           : <p className="muted small">Select a file to inspect its functions and classes.</p>}
       </div>
     </div>

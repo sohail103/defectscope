@@ -304,7 +304,7 @@ def _field_use(fn, fields: set, language: str) -> set:
 class StructuralHotspotPass(AnalysisPass):
     name = "structural_hotspots"
     description = "Flag structural complexity indicators. These are NOT defect predictions."
-    requires = ("entities", "basic_metrics", "complexity_metrics")
+    requires = ("entities", "basic_metrics", "complexity_metrics", "clone_groups")
     produces = ("hotspots",)
     languages = LANGS
     granularity = ("function", "class")
@@ -313,6 +313,7 @@ class StructuralHotspotPass(AnalysisPass):
         t = ctx.config.thresholds
         entities: list[Entity] = ctx.get("entities")
         out: list[Hotspot] = []
+        clone_of = {m["entity_id"]: g for g in (ctx.get("clone_groups") or []) for m in g["members"]}
 
         def add(e: Entity, rule: str, sev: str, value: float, thr: float, msg: str) -> None:
             out.append(Hotspot(
@@ -353,6 +354,12 @@ class StructuralHotspotPass(AnalysisPass):
                 if m.get("exception_handlers", 0) >= 4:
                     add(e, "complex_error_handling", "info", m["exception_handlers"], 4,
                         f"{int(m['exception_handlers'])} exception handlers in one function.")
+                g = clone_of.get(e.id)
+                if g:
+                    others = [x for x in g["members"] if x["entity_id"] != e.id]
+                    add(e, "duplicated_structure", "info", g["size"], 2,
+                        f"Same code structure as {len(others)} other function(s), e.g. {others[0]['name']} ({others[0]['path']}:{others[0]['start_line']}). "
+                        "Identifiers and literals differ; worth checking for copy-paste.")
                 if m.get("alloc_calls", 0) > m.get("free_calls", 0) and m.get("alloc_calls", 0) > 0:
                     add(e, "resource_ownership_indicator", "info", m["alloc_calls"] - m["free_calls"], 0,
                         "Acquires more resources than it releases locally. May be intentional ownership "

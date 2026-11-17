@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from .manager import PassManager
 from .passes.core import DiscoveryPass, ParsingPass, SymbolIndexPass
+from .passes.clones import DuplicateCodePass
+from .passes.diagnostics import StaticAnalysisPass
 from .passes.features import FeatureExtractionPass
+from .passes.history import ComplexityHistoryPass, GitHistoryPass
 from .passes.metrics import BasicMetricsPass, ComplexityPass, HalsteadPass
 from .passes.structure import (DependencyPass, OOMetricsPass, ProjectSummaryPass,
                                StructuralHotspotPass)
@@ -11,7 +14,8 @@ from .passes.structure import (DependencyPass, OOMetricsPass, ProjectSummaryPass
 def default_manager() -> PassManager:
     return PassManager([
         DiscoveryPass(), ParsingPass(), SymbolIndexPass(), BasicMetricsPass(), ComplexityPass(),
-        HalsteadPass(), DependencyPass(), OOMetricsPass(), StructuralHotspotPass(), FeatureExtractionPass(),
+        HalsteadPass(), DuplicateCodePass(), DependencyPass(), OOMetricsPass(), StructuralHotspotPass(), FeatureExtractionPass(), StaticAnalysisPass(),
+        GitHistoryPass(), ComplexityHistoryPass(),
         ProjectSummaryPass(),
     ])
 

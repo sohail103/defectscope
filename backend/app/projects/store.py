@@ -96,8 +96,14 @@ def create_from_local_path(path: str) -> ProjectMeta:
     return _finish(pid, src.name, "local_path", [])
 
 
-def create_sample() -> ProjectMeta:
+def create_sample(with_history: bool = False) -> ProjectMeta:
     """Import the bundled example project (always allowed; the path is fixed, not user-supplied)."""
+    if with_history:
+        z = config.ROOT / "examples" / "demo_history_repo.zip"
+        if not z.is_file():
+            raise FileNotFoundError("Demo repository missing. Run scripts/make_demo_repo.py")
+        with open(z, "rb") as fh:
+            return create_from_zip("demo_repo (with Git history)", fh)
     src = config.ROOT / "examples" / "sample_project"
     if not src.is_dir():
         raise FileNotFoundError("Bundled sample project is missing")

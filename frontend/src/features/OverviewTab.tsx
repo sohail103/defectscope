@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, bytes, fmt } from "../api";
+import { go } from "../App";
 import type { Entity, Hotspot } from "../types";
 import type { ProjectCtx } from "../pages/ProjectPage";
 import Histogram from "../visualizations/Histogram";
@@ -63,6 +64,26 @@ export default function OverviewTab({ ctx }: { ctx: ProjectCtx }) {
         <div className="stat"><b>{fmt(t.classes)}</b><span>classes and structs</span></div>
         <div className="stat"><b>{fmt(t.mean_cyclomatic, 1)}</b><span>mean cyclomatic complexity</span></div>
         <div className="stat"><b>{fmt(t.max_cyclomatic)}</b><span>highest cyclomatic complexity</span></div>
+      </div>
+
+      <div className="grid cols-3">
+        <div className="panel">
+          <div className="panel-head"><h2>Static analysis</h2><button className="btn small" onClick={() => go(`/p/${id}/findings`)}>View findings</button></div>
+          {overview.diagnostics_summary ? <>
+            <p><b style={{ fontSize: 22 }}>{overview.diagnostics_summary.total}</b> <span className="muted small">findings: {overview.diagnostics_summary.by_severity.high ?? 0} high, {overview.diagnostics_summary.by_severity.warning ?? 0} warning, {overview.diagnostics_summary.by_severity.info ?? 0} info</span></p>
+            <p className="small muted" style={{ marginTop: 4 }}>Tools run: {overview.tool_status.filter((t) => t.ran).map((t) => t.tool).join(", ") || "none"}</p>
+            {overview.tool_status.some((t) => !t.available && t.files > 0) && <p className="small" style={{ color: "var(--sev-high)", marginTop: 4 }}>Not installed: {overview.tool_status.filter((t) => !t.available && t.files > 0).map((t) => t.tool).join(", ")}</p>}
+          </> : <p className="muted small">Not run (disabled or skipped).</p>}
+        </div>
+        <div className="panel">
+          <div className="panel-head"><h2>Git history</h2><button className="btn small" onClick={() => go(`/p/${id}/history`)}>View history</button></div>
+          {overview.history_brief ? <p><b style={{ fontSize: 22 }}>{overview.history_brief.commits_analysed}</b> <span className="muted small">commits by {overview.history_brief.authors_total} contributors, {overview.history_brief.first_commit} → {overview.history_brief.last_commit}; {overview.history_brief.fix_commits_total} fix-like</span></p>
+            : <p className="muted small">No Git history in this project (or history analysis is off).</p>}
+        </div>
+        <div className="panel">
+          <div className="panel-head"><h2>Duplicated structure</h2><button className="btn small" onClick={() => go(`/p/${id}/priorities`)}>Review priority</button></div>
+          <p><b style={{ fontSize: 22 }}>{overview.clone_groups}</b> <span className="muted small">group(s) of functions with identical syntax-tree structure (renamed copies)</span></p>
+        </div>
       </div>
 
       <div className="grid cols-3">

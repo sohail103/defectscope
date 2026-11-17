@@ -61,6 +61,7 @@ export default function ImportPage() {
             <button className="btn primary" disabled={!!busy} onClick={() => zipRef.current?.click()}>Choose ZIP</button>
             <button className="btn" disabled={!!busy} onClick={() => dirRef.current?.click()}>Choose folder</button>
             <button className="btn" disabled={!!busy} onClick={() => run("Importing sample…", () => post<ProjectMeta>("/projects/sample"))}>Try the sample project</button>
+            <button className="btn" disabled={!!busy} title="The same sample with a 14-commit, 3-author Git history" onClick={() => run("Importing sample…", () => post<ProjectMeta>("/projects/sample?history=true"))}>Sample with Git history</button>
           </div>
           <input ref={zipRef} type="file" accept=".zip" hidden onChange={(e) => e.target.files?.[0] && uploadZip(e.target.files[0])} />
           <input ref={dirRef} type="file" hidden

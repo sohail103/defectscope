@@ -7,6 +7,9 @@ import ExplorerTab from "../features/ExplorerTab";
 import GraphTab from "../features/GraphTab";
 import SetupTab from "../features/SetupTab";
 import RiskTab from "../features/RiskTab";
+import FindingsTab from "../features/FindingsTab";
+import HistoryTab from "../features/HistoryTab";
+import PrioritiesTab from "../features/PrioritiesTab";
 
 export interface ProjectCtx {
   id: string; detail: ProjectDetail; overview: AnalysisOverview | null;
@@ -16,8 +19,8 @@ export interface ProjectCtx {
 }
 
 const TABS = [
-  ["overview", "Overview"], ["explorer", "Explorer"], ["graph", "Dependencies"],
-  ["risk", "Defect risk"], ["setup", "Analysis setup"],
+  ["overview", "Overview"], ["explorer", "Explorer"], ["findings", "Findings"], ["history", "History"],
+  ["priorities", "Review priority"], ["graph", "Dependencies"], ["risk", "Defect risk"], ["setup", "Analysis setup"],
 ] as const;
 
 export default function ProjectPage({ id, tab, params }: { id: string; tab: string; params: URLSearchParams }) {
@@ -77,6 +80,9 @@ export default function ProjectPage({ id, tab, params }: { id: string; tab: stri
       {error && <div className="page" style={{ paddingBottom: 0 }}><div className="notice error">{error}</div></div>}
       {tab === "overview" && <OverviewTab ctx={ctx} />}
       {tab === "explorer" && <ExplorerTab ctx={ctx} params={params} />}
+      {tab === "findings" && <FindingsTab ctx={ctx} />}
+      {tab === "history" && <HistoryTab ctx={ctx} />}
+      {tab === "priorities" && <PrioritiesTab ctx={ctx} />}
       {tab === "graph" && <GraphTab ctx={ctx} />}
       {tab === "risk" && <RiskTab ctx={ctx} />}
       {tab === "setup" && <SetupTab ctx={ctx} />}

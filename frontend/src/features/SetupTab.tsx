@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, bytes } from "../api";
+import type { ToolInfo } from "../types";
 import type { ProjectCtx } from "../pages/ProjectPage";
 
 interface PassInfo { name: string; description: string; requires: string[]; produces: string[]; languages: string[] | null; granularity: string[] }
@@ -7,7 +8,8 @@ interface PassInfo { name: string; description: string; requires: string[]; prod
 export default function SetupTab({ ctx }: { ctx: ProjectCtx }) {
   const { config, setConfig, detail, job, overview } = ctx;
   const [passes, setPasses] = useState<PassInfo[]>([]);
-  useEffect(() => { api<PassInfo[]>("/passes").then(setPasses); }, []);
+  const [tools, setTools] = useState<{ static_analysis: ToolInfo[]; git: { available: boolean } } | null>(null);
+  useEffect(() => { api<PassInfo[]>("/passes").then(setPasses); api<typeof tools>("/tools").then(setTools); }, []);
   if (!config) return <div className="page muted">Loading…</div>;
   const ex = config.exclusions;
   const set = (patch: Partial<typeof ex>) => setConfig({ ...config, exclusions: { ...ex, ...patch } });
@@ -51,6 +53,50 @@ export default function SetupTab({ ctx }: { ctx: ProjectCtx }) {
             <label className="field">Skip files larger than (KB)
               <input className="input" type="number" min={16} value={Math.round(ex.max_file_bytes / 1024)} onChange={(e) => set({ max_file_bytes: Math.max(16, +e.target.value) * 1024 })} />
             </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid cols-2">
+        <div className="panel">
+          <div className="panel-head"><h2>Static-analysis tools</h2>
+            <label className="toggle"><input type="checkbox" checked={config.static_analysis.enabled} onChange={(e) => setConfig({ ...config, static_analysis: { ...config.static_analysis, enabled: e.target.checked } })} />enabled</label></div>
+          <p className="small muted" style={{ marginBottom: 8 }}>External tools inspect the code without running it. Project-supplied tool settings are ignored; DefectScope passes its own.</p>
+          <div className="grid" style={{ gap: 8 }}>
+            {(tools?.static_analysis ?? []).map((t) => {
+              const on = config.static_analysis.tools.includes(t.name);
+              return (
+                <div key={t.name} style={{ opacity: t.available ? 1 : 0.7 }}>
+                  <label className="toggle"><input type="checkbox" disabled={!t.available || !config.static_analysis.enabled} checked={on && t.available}
+                    onChange={(e) => setConfig({ ...config, static_analysis: { ...config.static_analysis, tools: e.target.checked ? [...config.static_analysis.tools, t.name] : config.static_analysis.tools.filter((x) => x !== t.name) } })} />
+                    <b style={{ fontWeight: 500 }}>{t.name}</b> <span className="faint small">{t.languages.map((l) => (l === "cpp" ? "C++" : l)).join(", ")}{t.available && t.version ? ` · ${t.version.replace(/^.*?(\d)/, "$1")}` : ""}</span></label>
+                  <div className="small muted" style={{ marginLeft: 22 }}>{t.description}{!t.available && <> <span style={{ color: "var(--sev-high)" }}>Not installed:</span> <code>{t.install_hint}</code></>}{!t.default_enabled && t.available && " (off by default: slower or needs setup)"}</div>
+                </div>);
+            })}
+          </div>
+          <label className="field" style={{ marginTop: 10, width: 160 }}>Timeout per tool (s)
+            <input className="input" type="number" min={10} value={config.static_analysis.timeout_s} onChange={(e) => setConfig({ ...config, static_analysis: { ...config.static_analysis, timeout_s: +e.target.value } })} /></label>
+        </div>
+        <div className="grid" style={{ alignContent: "start" }}>
+          <div className="panel">
+            <div className="panel-head"><h2>Git history</h2>
+              <label className="toggle"><input type="checkbox" checked={config.history.enabled} onChange={(e) => setConfig({ ...config, history: { ...config.history, enabled: e.target.checked } })} />enabled</label></div>
+            <p className="small muted" style={{ marginBottom: 8 }}>{s.has_git ? "A .git folder was found." : "No .git folder in this project, so history will be skipped."} {tools && !tools.git.available && <b style={{ color: "var(--sev-high)" }}>The git program is not installed.</b>}</p>
+            <div className="row">
+              <label className="field">Use commits up to (optional)
+                <input className="input" type="date" value={config.history.until ?? ""} onChange={(e) => setConfig({ ...config, history: { ...config.history, until: e.target.value || null } })} /></label>
+              <label className="field" style={{ width: 120 }}>Max commits
+                <input className="input" type="number" min={50} value={config.history.max_commits} onChange={(e) => setConfig({ ...config, history: { ...config.history, max_commits: +e.target.value } })} /></label>
+            </div>
+            <p className="small muted" style={{ marginTop: 6 }}>A cutoff date uses only commits up to that day, so values match what was knowable at that point (no temporal leakage).</p>
+          </div>
+          <div className="panel">
+            <div className="panel-head"><h2>Duplicate code</h2>
+              <label className="toggle"><input type="checkbox" checked={config.clones.enabled} onChange={(e) => setConfig({ ...config, clones: { ...config.clones, enabled: e.target.checked } })} />enabled</label></div>
+            <div className="row">
+              <label className="field" style={{ width: 150 }}>Min function SLOC<input className="input" type="number" min={3} value={config.clones.min_function_sloc} onChange={(e) => setConfig({ ...config, clones: { ...config.clones, min_function_sloc: +e.target.value } })} /></label>
+              <label className="field" style={{ width: 150 }}>Min syntax nodes<input className="input" type="number" min={10} value={config.clones.min_nodes} onChange={(e) => setConfig({ ...config, clones: { ...config.clones, min_nodes: +e.target.value } })} /></label>
+            </div>
           </div>
         </div>
       </div>

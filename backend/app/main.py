@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import lab, projects
+from .api import insights, lab, projects
 from .core import config
 
 config.ensure_dirs()
@@ -20,6 +20,7 @@ app.add_middleware(
 )
 app.include_router(projects.router)
 app.include_router(lab.router)
+app.include_router(insights.router)
 
 
 @app.get("/api/health")
