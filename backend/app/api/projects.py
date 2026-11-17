@@ -85,9 +85,9 @@ def snippet(body: SnippetIn):
 
 
 @router.post("/projects/sample")
-def sample():
+def sample(history: bool = False):
     try:
-        return store.create_sample()
+        return store.create_sample(history)
     except FileNotFoundError as e:
         raise HTTPException(404, str(e))
 
@@ -217,7 +217,11 @@ def analysis_overview(pid: str, analysis_id: Optional[str] = None):
     a = _analysis(pid, analysis_id)
     stale = a["snapshot_hash"] != store.snapshot_hash(store.source_dir(pid))
     return {k: a[k] for k in ("analysis_id", "project_id", "analysis_version", "created_at", "passes",
-                              "discovery", "summary", "capabilities", "parse_status")} | {"stale": stale}
+                              "discovery", "summary", "capabilities", "parse_status")} | {
+        "stale": stale, "tool_status": a.get("tool_status", []), "diagnostics_summary": a.get("diagnostics_summary"),
+        "has_history": bool(a.get("history")), "history_brief": {k: a["history"][k] for k in (
+            "commits_analysed", "first_commit", "last_commit", "authors_total", "fix_commits_total")} if a.get("history") else None,
+        "clone_groups": len(a.get("clone_groups") or [])}
 
 
 @router.get("/projects/{pid}/entities")

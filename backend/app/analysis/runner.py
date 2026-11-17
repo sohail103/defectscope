@@ -68,17 +68,32 @@ def run_analysis(pid: str, cfg: AnalysisConfig, cancel: Optional[threading.Event
         "hotspots": [h.model_dump() for h in art.get("hotspots", [])],
         "dependency_graph": art.get("dependency_graph"),
         "features": art.get("mdp_features"),
-        "capabilities": {
-            "analysis_level": "syntax",
-            "semantic_analysis": False,
-            "note": "Tree-sitter syntax-level analysis. No macro expansion, type resolution or data-flow analysis.",
-            "defect_prediction": None,
-        },
+        "diagnostics": [d.model_dump() for d in (art.get("diagnostics") or [])],
+        "tool_status": art.get("tool_status") or [],
+        "diagnostics_summary": art.get("diagnostics_summary"),
+        "clone_groups": art.get("clone_groups") or [],
+        "history": art.get("history"),
+        "complexity_history": art.get("complexity_history"),
+        "capabilities": _capabilities(art.get("tool_status") or []),
     }
     out = store.analyses_dir(pid) / f"{aid}.json"
     out.write_text(json.dumps(doc))
     (store.analyses_dir(pid) / "latest.txt").write_text(aid)
     return aid
+
+
+def _capabilities(tool_status: list[dict]) -> dict:
+    ran = [t["tool"] for t in tool_status if t["ran"]]
+    clang = "clang-tidy" in ran
+    return {
+        "analysis_level": "syntax + external tools" if ran else "syntax",
+        "semantic_analysis": clang,  # only Clang provides semantic (type/CFG-aware) results, and only for files it could compile
+        "tools_run": ran,
+        "note": "Metrics are Tree-sitter syntax-level (no macro expansion or type resolution)."
+                + (" Static-analysis findings come from: " + ", ".join(ran) + "." if ran else "")
+                + (" clang-tidy adds semantic analysis for C/C++ files it could compile." if clang else ""),
+        "defect_prediction": None,
+    }
 
 
 def load_analysis(pid: str, aid: Optional[str] = None) -> dict:

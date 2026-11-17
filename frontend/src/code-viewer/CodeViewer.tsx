@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useRef } from "react";
-import type { Entity, Hotspot, Severity } from "../types";
+import type { Diagnostic, Entity, Hotspot, Severity } from "../types";
 import type { Prediction } from "../types/lab";
 import { highlightLines } from "./highlight";
 
@@ -10,14 +10,14 @@ const LH = 20;
 
 interface RowProps {
   n: number; html: string; sev: number; tip: string; heat: number; inSel: boolean; decision: boolean;
-  flash: boolean; riskTip: string; riskOn: boolean; onPick: (n: number) => void;
+  flash: boolean; riskTip: string; riskOn: boolean; diagTip: string; diagSev: number; onPick: (n: number) => void;
 }
-const Row = memo(function Row({ n, html, sev, tip, heat, inSel, decision, flash, riskTip, riskOn, onPick }: RowProps) {
+const Row = memo(function Row({ n, html, sev, tip, heat, inSel, decision, flash, riskTip, riskOn, diagTip, diagSev, onPick }: RowProps) {
   return (
     <div className={"ln" + (inSel ? " in-sel" : "") + (decision ? " decision" : "") + (flash ? " flash" : "")} data-line={n} onClick={() => onPick(n)}>
       <span className="num">{n}</span>
       <span className={"lane s" + (sev ? " " + SEV_NAME[sev] : "")} title={tip} />
-      <span className="lane d" />
+      <span className="lane d">{diagTip ? <i className={"ring " + SEV_NAME[diagSev]} title={diagTip} /> : null}</span>
       <span className="lane r">{riskTip ? <i className={"tri" + (riskOn ? " on" : "")} title={riskTip} /> : null}</span>
       <span className="src" style={heat ? { background: `rgba(169,106,16,${heat})` } : undefined} dangerouslySetInnerHTML={{ __html: html || " " }} />
     </div>
@@ -26,9 +26,14 @@ const Row = memo(function Row({ n, html, sev, tip, heat, inSel, decision, flash,
 
 export default function CodeViewer(props: {
   content: string; language?: string | null; entities: Entity[]; hotspots: Hotspot[]; layers: Layers;
-  selected: Entity | null; targetLine?: number; onSelect: (e: Entity | null) => void; predictions?: Prediction[]; modelName?: string;
+  selected: Entity | null; targetLine?: number; onSelect: (e: Entity | null) => void; predictions?: Prediction[]; modelName?: string; diagnostics?: Diagnostic[];
 }) {
-  const { content, language, entities, hotspots, layers, selected, targetLine, onSelect, predictions = [], modelName = "model" } = props;
+  const { content, language, entities, hotspots, layers, selected, targetLine, onSelect, predictions = [], modelName = "model", diagnostics = [] } = props;
+  const diagByLine = useMemo(() => {
+    const m = new Map<number, Diagnostic[]>();
+    for (const d of diagnostics) m.set(d.range.start_line, [...(m.get(d.range.start_line) ?? []), d]);
+    return m;
+  }, [diagnostics]);
   const riskByLine = useMemo(() => new Map(predictions.map((p) => [p.start_line, p])), [predictions]);
   const scroller = useRef<HTMLDivElement>(null);
   const html = useMemo(() => highlightLines(content, language), [content, language]);
@@ -84,7 +89,9 @@ export default function CodeViewer(props: {
             heat={layers.heat ? lineData.heat[n] : 0}
             inSel={inSel} decision={decisionLines.has(n)} flash={!!targetLine && n === targetLine} onPick={pick}
             riskTip={layers.risk && riskByLine.get(n) ? `Predicted risk ${(riskByLine.get(n)!.probability * 100).toFixed(0)}% for this whole function (${modelName}). Function-level estimate, not a line-level finding.` : ""}
-            riskOn={!!riskByLine.get(n)?.flagged} />
+            riskOn={!!riskByLine.get(n)?.flagged}
+            diagTip={layers.staticAnalysis && diagByLine.get(n) ? diagByLine.get(n)!.map((d) => `[${d.tool}] ${d.message}`).join("\n") : ""}
+            diagSev={diagByLine.get(n) ? Math.max(...diagByLine.get(n)!.map((d) => SEV[d.severity])) : 0} />
         );
       })}
     </div>

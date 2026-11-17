@@ -85,9 +85,57 @@ class Thresholds(BaseModel):
     class_sloc_warning: int = 400
 
 
+DiagnosticCategory = Literal[
+    "memory_safety", "null_pointer", "buffer_bounds", "resource_management", "uninitialized", "control_flow",
+    "exception_handling", "type_problems", "suspicious_condition", "security", "maintainability",
+]
+
+
+class Diagnostic(BaseModel):
+    """One finding from a deterministic static-analysis tool (layer: static_analysis)."""
+
+    id: str
+    tool: str
+    rule: str
+    severity: Severity
+    category: DiagnosticCategory
+    path: str
+    range: SourceRange
+    message: str
+    entity_id: Optional[str] = None  # innermost function/class containing the finding
+    cwe: Optional[int] = None
+    corroborated_by: list[str] = Field(default_factory=list)  # other tools reporting the same category on the same line
+
+
+class StaticAnalysisConfig(BaseModel):
+    enabled: bool = True
+    # Opt-in tools are slower or need extra setup (pylint: slow; clang-tidy: works best with compile_commands.json).
+    tools: list[str] = Field(default_factory=lambda: ["ruff", "bandit", "cppcheck"])
+    timeout_s: int = 120
+    max_files_per_tool: int = 1500
+
+
+class HistoryConfig(BaseModel):
+    enabled: bool = True
+    max_commits: int = 3000
+    until: Optional[str] = None  # ISO date: only commits up to this date are used (prevents temporal leakage)
+    bugfix_keywords: list[str] = Field(default_factory=lambda: [
+        "fix", "bug", "defect", "patch", "crash", "leak", "overflow", "regression", "fault", "error", "issue"])
+    complexity_samples: int = 8  # commits sampled for complexity-over-time
+
+
+class CloneConfig(BaseModel):
+    enabled: bool = True
+    min_function_sloc: int = 8
+    min_nodes: int = 30
+
+
 class AnalysisConfig(BaseModel):
     exclusions: ExclusionRules = Field(default_factory=ExclusionRules)
     thresholds: Thresholds = Field(default_factory=Thresholds)
+    static_analysis: StaticAnalysisConfig = Field(default_factory=StaticAnalysisConfig)
+    history: HistoryConfig = Field(default_factory=HistoryConfig)
+    clones: CloneConfig = Field(default_factory=CloneConfig)
     enabled_passes: Optional[list[str]] = None  # None => all applicable
 
 

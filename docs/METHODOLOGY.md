@@ -5,13 +5,13 @@
 |---|---|---|
 | 1 | Association between complexity metrics and defect proneness | **Done**: Spearman ρ, Mann-Whitney effect size, BH-adjusted p-values, defect rate by quantile bin (Datasets tab) |
 | 2 | Which structural characteristics are most informative | **Done**: permutation importance (held-out), feature-group ablation (Experiment E) |
-| 3 | Do historical patterns add value beyond static metrics | **Not possible with current data** (Experiment A reports *unavailable*): NASA MDP has no history |
+| 3 | Do historical patterns add value beyond static metrics | History metrics are **extracted** (History tab) but there is **no history-labelled dataset to train/evaluate on**, so Experiment A still reports *unavailable* |
 | 4 | How do algorithms compare | **Done**: Experiment B, identical splits |
 | 5 | Performance on a different project | **Done**: Experiment C, leave-one-project-out, pairwise matrix, KS domain shift |
 | 6 | Reliability of probabilities | **Done**: Experiment D, reliability curves, Brier, ECE, Platt/isotonic |
 | 7 | Can predictions be explained | **Done**: SHAP (trees) / exact linear decomposition (logistic), local-accuracy checked |
-| 8 | Localise suspicious modules/regions | Modules/functions: **done**. Lines: **not attempted** (no line-level labels or model) |
-| 9 | Defects detectable by deterministic static analysis | **Not implemented** (no tool integration yet) |
+| 8 | Localise suspicious modules/regions | Functions: **done** (structural, static-analysis, risk layers). Lines: only static-analysis findings (tool-reported); no learned line-level model |
+| 9 | Defects detectable by deterministic static analysis | **Done** via Ruff, Bandit, Pylint, cppcheck, clang-tidy. Not validated against labelled defects here |
 | 10 | Effect of language/project | Partly: per-project results, C→C++ transfer via KC1; Python has no applicable data |
 
 ## Leakage controls
@@ -39,4 +39,11 @@ before calibration (calibration is monotonic). **They describe what the model us
 5. Output is per function only and is never converted to line-level scores.
 
 ## Not done (so they are not claimed)
-Static-analysis integration, Git history features, line-level localisation (LINE-DP), Codeflaws/BugsInPy experiments, version comparison mode.
+Learned line-level localisation (LINE-DP), Codeflaws/BugsInPy experiments, history-based prediction/evaluation, version comparison mode, function-level history attribution.
+
+## Slice 3 methodology notes
+* **Temporal leakage:** history values use only commits up to the reference date (`Use commits up to` in Analysis setup, otherwise the newest commit); "days since last change" is relative to that date, not to today.
+* **Attribution uncertainty:** history is attributed to files only; merges are excluded and renames are not followed (both stated in the UI).
+* **Bug-fix commits** are a message-keyword heuristic and are labelled as such everywhere; they are not used as training labels.
+* **Tool findings** are reported as the tools produce them. Agreement between independent tools (`corroborated_by`) is shown as supporting evidence but not as proof. No precision/recall has been measured for the tools on labelled defects.
+* **Static analysis safety:** tools analyse files without building or running the project; project tool configuration is ignored so an uploaded repository cannot change what runs.

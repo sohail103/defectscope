@@ -11,8 +11,9 @@ Three kinds of finding are kept visually and conceptually separate everywhere in
 | Layer | What it is | Where it appears |
 |---|---|---|
 | **Structural indicators** (ochre) | Measured complexity: cyclomatic complexity, nesting, length, parameters... | left gutter bar, heat tint |
-| **Static-analysis findings** (blue) | Deterministic tool diagnostics. *Planned, not yet integrated.* | reserved gutter lane |
+| **Static-analysis findings** (blue) | Deterministic tool diagnostics (Ruff, Bandit, Pylint, cppcheck, clang-tidy) | middle gutter lane, Findings tab |
 | **Predicted risk** (madder) | A learned, function-level estimate | right gutter lane, Defect risk tab |
+| **History** (teal) | Git change history, file-level | History tab, file inspector |
 
 Nothing is sent off your machine. Imported code is parsed, never executed.
 
@@ -28,9 +29,15 @@ Nothing is sent off your machine. Imported code is parsed, never executed.
 * **Model lab**: NASA MDP download with checksums, dataset explorer, experiments B-F (algorithm comparison, leave-one-project-out,
   calibration, feature-group ablation, error analysis), model training with full manifests, permutation importance, SHAP.
 * **Defect risk tab**: compatibility check, function-level predictions, local explanations, out-of-range flags.
+* **Static analysis**: Ruff, Bandit, Pylint (Python) and cppcheck, clang-tidy (C/C++) unified into one finding model with categories, CWE ids,
+  severity, source ranges, enclosing function, and cross-tool agreement. Project-supplied tool configs are ignored.
+* **Git history** (optional): commits, churn, authors, change entropy, recency, bug-fix-like commits (keyword heuristic), monthly trends, and
+  complexity over time read from Git objects, with an "as of" cutoff date to avoid temporal leakage.
+* **Duplicate code**: functions with identical syntax-tree structure (renamed copies).
+* **Review priority**: per-function factors side by side (complexity, findings, churn, fixes, risk, duplication) with transparent top-decile flags.
 * **Export**: metrics CSV and full analysis JSON.
 
-See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for what is *not* implemented (static-analysis tools, Git history, Codeflaws/BugsInPy/LINE-DP, comparison mode, PDF/HTML reports, Experiment A).
+See [docs/LIMITATIONS.md](docs/LIMITATIONS.md) for what is *not* implemented (Codeflaws/BugsInPy/LINE-DP, comparison mode, PDF/HTML reports, Experiment A, function-level history).
 
 ## Quick start
 
@@ -46,7 +53,7 @@ pip install -r backend/requirements.txt
 
 or build once and serve from one port: `./scripts/start.sh` then open http://127.0.0.1:8000.
 
-First run: open the app, click **Try the sample project**, then **Run analysis**. For predictions, go to **Model lab → Datasets →
+First run: open the app, click **Try the sample project** (or **Sample with Git history**), then **Run analysis**. Install cppcheck for C/C++ findings (see [BUILD](docs/BUILD.md)). For predictions, go to **Model lab → Datasets →
 Download**, then **Models → Train model** (about a minute), then open a C/C++ project's **Defect risk** tab.
 
 Tests: `cd backend && ../.venv/bin/python -m pytest -q`

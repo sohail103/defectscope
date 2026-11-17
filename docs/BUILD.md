@@ -33,12 +33,23 @@ npm run build    # produces frontend/dist, which the backend serves on :8000
 
 The server binds to 127.0.0.1 only. Do not change `--host` unless you understand that anyone who can reach the port can upload files.
 
-## Optional tools
-Clang, clang-tidy, cppcheck, Ruff, Pylint and Bandit are **not used yet** (see LIMITATIONS). Nothing needs installing for current features.
+## Static-analysis tools
+| Tool | Languages | Install | Default |
+|---|---|---|---|
+| Ruff, Bandit | Python | included in `requirements.txt` | on |
+| Pylint | Python | included in `requirements.txt` | off (slow) |
+| cppcheck | C/C++ | `apt install cppcheck` / `brew install cppcheck` | on if installed |
+| clang-tidy | C/C++ | `pip install -r backend/requirements-optional.txt` or `apt install clang-tidy` | off (opt-in) |
+
+Missing tools are reported in the UI (Findings and Analysis setup) and skipped; nothing else breaks. For best clang-tidy results provide a
+`compile_commands.json` in the project (it is detected automatically); without one, files are parsed standalone and missing headers limit the analysis.
+
+## Git history
+Needs the `git` program on PATH and the project's `.git` folder in the import. `python scripts/make_demo_repo.py` regenerates `examples/demo_history_repo.zip`.
 
 ## Offline dataset install
 If the download fails (network policy), download https://github.com/klainfo/NASADefectDataset as a ZIP and use
 Model lab → Datasets → *Import ZIP manually*.
 
 ## Tests
-`cd backend && python -m pytest -q` (15 tests; the NASA-specific one skips if data is absent).
+`cd backend && python -m pytest -q` (22 tests; tests needing the NASA data, cppcheck or ruff skip when those are absent).

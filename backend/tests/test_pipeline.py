@@ -70,6 +70,6 @@ def test_api_flow(sample_zip):
             break
         time.sleep(0.1)
     assert job["status"] == "done", job
-    assert c.get(f"/api/projects/{pid}/analysis").json()["summary"]["totals"]["functions"] == 16
+    assert c.get(f"/api/projects/{pid}/analysis").json()["summary"]["totals"]["functions"] == 24
     assert c.get(f"/api/projects/{pid}/tree").json()["children"]
     assert c.delete(f"/api/projects/{pid}").status_code == 200

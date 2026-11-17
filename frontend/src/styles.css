@@ -206,3 +206,8 @@ svg.graph { width: 100%; height: 560px; background: #fbfcfa; border: 1px solid v
 .lane.r { position: relative; }
 .tri { position: absolute; left: 3px; top: 4px; width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--risk); opacity: .35; }
 .tri.on { opacity: 1; }
+
+.lane.d { position: relative; }
+.ring { position: absolute; left: 3px; top: 4px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--static); background: transparent; }
+.ring.warning { background: var(--static-tint); }
+.ring.high { background: var(--static); }

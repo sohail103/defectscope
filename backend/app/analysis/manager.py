@@ -6,7 +6,7 @@ import traceback
 from typing import Callable
 
 from ..core.schemas import PassResult
-from .base import AnalysisCancelled, AnalysisPass, PassContext
+from .base import AnalysisCancelled, AnalysisPass, PassContext, PassSkipped
 
 
 class PassManager:
@@ -67,6 +67,10 @@ class PassManager:
                     res.status = "ok"
                     for art in p.produces:  # passes that only write per-entity metrics still "produce" their artifact
                         ctx.artifacts.setdefault(art, True)
+                except PassSkipped as e:
+                    res.status, res.message = "skipped", str(e)
+                    for art in p.produces:  # optional pass: downstream passes see an explicit "nothing" rather than a missing input
+                        ctx.artifacts.setdefault(art, None)
                 except AnalysisCancelled:
                     res.status = "cancelled"
                     raise
